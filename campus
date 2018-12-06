@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# fetches artist, title from kölncampus.com, appends string
+# fetches artist, title from kölncampus.com, prepends timestring,
 # writes to ~/bin/kc/kc.log
 campus() {
 
