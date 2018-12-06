@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# fetches artist, title from kölncampus.com, appends string
+# writes to ~/bin/kc/kc.log
+campus() {
+
+	if [ -z "$1" ]; then
+		curl https://www.koelncampus.com/sender/livestream/ \
+                | grep id='"'currentSong'[TA]' \
+                | sed -e 's/<[^>]*>//g' \
+                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}' \
+                | while IFS= read -r line; do 
+                	printf '[%s] %s\n' \
+                	"$(date '+%Y-%m-%d %H:%M:%S')" \
+                	"$line";
+                  done \
+                | tee -a ~/bin/kc/kc.log
+        echo "success!"
+    else
+    	case "$1" in
+	        list)
+	            cat ~/bin/kc/kc.log
+	            ;;
+	        artist)
+	            curl https://www.koelncampus.com/sender/livestream/ \
+	                | grep id='"'currentSong'[A]' \
+	                | sed -e 's/<[^>]*>//g' \
+	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
+
+	            ;;
+	        song)
+	            curl https://www.koelncampus.com/sender/livestream/ \
+	                | grep id='"'currentSong'[T]' \
+	                | sed -e 's/<[^>]*>//g' \
+	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
+	            ;;            
+	        listartists)
+	            cat ~/bin/kc/kc.log \
+	                | awk 'NR % 2 ==1'
+	            ;;
+	        listsongs)
+	            cat ~/bin/kc/kc.log \
+	                | awk 'NR % 2 ==0'
+	            ;;
+	        *)
+	         echo "Sorry, i did not understand that"
+    	esac
+   	fi
+}
+
+campus "$1"
+
