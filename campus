@@ -1,8 +1,11 @@
 #!/bin/bash
 
 # fetches artist, title from kölncampus.com, prepends timestring,
-# writes to ~/bin/kc/kc.log
+# writes to ./kc/kc.log
 campus() {
+
+    dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+    cd "$dir"
 
 	if [ -z "$1" ]; then
 		curl https://www.koelncampus.com/sender/livestream/ \
@@ -14,12 +17,12 @@ campus() {
                 	"$(date '+%Y-%m-%d %H:%M:%S')" \
                 	"$line";
                   done \
-                | tee -a ~/bin/kc/kc.log
+                | tee -a ./kc.log
         echo "success!"
     else
     	case "$1" in
 	        list)
-	            cat ~/bin/kc/kc.log
+	            cat ./kc.log
 	            ;;
 	        artist)
 	            curl https://www.koelncampus.com/sender/livestream/ \
@@ -35,11 +38,11 @@ campus() {
 	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
 	            ;;            
 	        listartists)
-	            cat ~/bin/kc/kc.log \
+	            cat ./kc.log \
 	                | awk 'NR % 2 ==1'
 	            ;;
 	        listsongs)
-	            cat ~/bin/kc/kc.log \
+	            cat ./kc.log \
 	                | awk 'NR % 2 ==0'
 	            ;;
 	        *)
