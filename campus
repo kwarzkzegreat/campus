@@ -22,7 +22,18 @@ campus() {
     else
     	case "$1" in
 	        list)
-	            cat ./kc.log
+                case "$2" in
+                    artists)
+                        cat ./kc.log \
+                            | awk 'NR % 2 ==1'
+                        ;;
+                    songs)
+                        cat ./kc.log \
+                            | awk 'NR %2 ==0'
+                        ;;
+                    *)
+                        cat ./kc.log
+                esac
 	            ;;
 	        artist)
 	            curl https://www.koelncampus.com/sender/livestream/ \
@@ -51,5 +62,5 @@ campus() {
    	fi
 }
 
-campus "$1"
+campus "$1""$2"
 
