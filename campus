@@ -6,22 +6,22 @@ VERSION 0.1 | AUTHOR : mkirc | LICENSE: WTFPL \n
 USAGE:      campus [option] command [parameter]\n
 OPTIONS:    -h, --help  display this message
             -s          silent mode
-            --nvlc      listen to stream with nvlc
-            --mplayer   listen to stream with mplayer
+            --nvlc      stream with nvlc
+            --mplayer   stream with mplayer
             -l,         print WTFPL
             --license
             -v,         print mighty useful
             --version   version information\n
-COMMANDS:   list        display a list of fetched songs
+COMMANDS:   list        display a list of fetched artist/song pairs
             artist      fetch name of currently playing artist
             song        fetch name of currently playing song
             delete      delete from list
-            play        play audiostream using backend specified 
+            play        stream audio via backend specified 
                         in [option] (default: mplayer)
             info        print help and WTFPL\n
 PARAMETERS: list
-             artists    list all fetched artists
-             songs      list all fetched songs
+             artists    print all fetched artists
+             songs      print all fetched songs
             delete
              last       delete last fetched artist/song pair
              all        delete entire list\n\n"
@@ -220,6 +220,8 @@ dispatch() {
     elif [[ "$1" == 'info' ]]; then
         helper && \
             info '--license'
+    else
+        printf "hm?\n"
     fi
 }
 
