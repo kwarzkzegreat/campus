@@ -1,13 +1,96 @@
 #!/bin/bash
 
-# fetches artist, title from kölncampus.com, prepends timestring,
-# writes to ./kc/kc.log
-campus() {
+helper() {
+    printf "\nCoeln Campus Command Line Client
+VERSION 0.1 | AUTHOR : mkirc | LICENSE: WTFPL \n
+USAGE:      campus [option] command [parameter]\n
+OPTIONS:    -h, --help  display this message
+            -s          silent mode
+            --nvlc      listen to stream with nvlc
+            --mplayer   listen to stream with mplayer
+            -l,         print WTFPL
+            --license
+            -v,         print mighty useful
+            --version   version information\n
+COMMANDS:   list        display a list of fetched songs
+            artist      fetch name of currently playing artist
+            song        fetch name of currently playing song
+            delete      delete from list
+            play        play audiostream using backend specified 
+                        in [option] (default: mplayer)
+            info        print help and WTFPL\n
+PARAMETERS: list
+             artists    list all fetched artists
+             songs      list all fetched songs
+            delete
+             last       delete last fetched artist/song pair
+             all        delete entire list\n\n"
+}
 
-    dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-    cd "$dir"
+info() {
+    if [[ "$1" == '--license' ]]; then
+    printf "\n            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
+                     Version 2, December 2004 
+          Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>\n 
+  Everyone is permitted to copy and distribute verbatim or modified 
+   copies of this license document, and changing it is allowed as long 
+                     as the name is changed.\n
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
+    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION\n 
+               0. You just DO WHAT THE FUCK YOU WANT TO.\n\n"
 
-	if [ -z "$1" ]; then
+    elif [[ "$1" == '--version' ]]; then
+        printf "VERSION=0.1\n"
+    fi
+}
+
+get_mplayer_path() {
+    shopt -s nullglob
+    local m_path=(/usr/bin/mplayer)
+    shopt -u nullglob
+    [[ -x "$m_path" ]] && \
+        { mplayer_path="$m_path"; return; }
+}
+
+get_nvlc_path() {
+    shopt -s nullglob
+    local n_path=(/usr/bin/nvlc)
+    shopt -u nullglob
+    [[ -x "$n_path" ]] && \
+        { nvlc_path="$n_path"; return; }
+}
+
+audio_backend() {
+    if [[ -z "$1" ]]; then
+        get_mplayer_path && \
+            player="$mplayer_path -playlist"
+    elif [[ "$1" == '--mplayer' ]]; then
+        get_mplayer_path && \
+            player="$mplayer_path -playlist"
+    elif [[ "$1" == '--nvlc' ]]; then
+        get_nvlc_path && \
+            player="$nvlc_path"
+    fi
+}
+
+play () {
+    audio_backend "$1"
+    $player http://koelncampus.uni-koeln.de/hq.m3u
+}
+
+fetch_all() {
+    if [ "$1" == "-s" ]; then
+		curl -s https://www.koelncampus.com/sender/livestream/ \
+                | grep id='"'currentSong'[TA]' \
+                | sed -e 's/<[^>]*>//g' \
+                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}' \
+                | while IFS= read -r line; do 
+                	printf '[%s] %s\n' \
+                	"$(date '+%Y-%m-%d %H:%M:%S')" \
+                	"$line";
+                  done \
+                | tee -a ./kc.log
+    elif [ -z "$1" ]; then
 		curl https://www.koelncampus.com/sender/livestream/ \
                 | grep id='"'currentSong'[TA]' \
                 | sed -e 's/<[^>]*>//g' \
@@ -18,49 +101,132 @@ campus() {
                 	"$line";
                   done \
                 | tee -a ./kc.log
-        echo "success!"
-    else
-    	case "$1" in
-	        list)
-                case "$2" in
-                    artists)
-                        cat ./kc.log \
-                            | awk 'NR % 2 ==1'
-                        ;;
-                    songs)
-                        cat ./kc.log \
-                            | awk 'NR %2 ==0'
-                        ;;
-                    *)
-                        cat ./kc.log
-                esac
-	            ;;
-	        artist)
-	            curl https://www.koelncampus.com/sender/livestream/ \
-	                | grep id='"'currentSong'[A]' \
-	                | sed -e 's/<[^>]*>//g' \
-	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
+    fi
+}
 
-	            ;;
-	        song)
-	            curl https://www.koelncampus.com/sender/livestream/ \
+fetch_song() {
+    if [[ "$1" == "-s" ]];then
+        curl -s https://www.koelncampus.com/sender/livestream/ \
 	                | grep id='"'currentSong'[T]' \
 	                | sed -e 's/<[^>]*>//g' \
 	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
-	            ;;            
-	        listartists)
-	            cat ./kc.log \
-	                | awk 'NR % 2 ==1'
-	            ;;
-	        listsongs)
-	            cat ./kc.log \
-	                | awk 'NR % 2 ==0'
-	            ;;
-	        *)
-	         echo "Sorry, i did not understand that"
-    	esac
-   	fi
+    elif [[ -z "$1" ]]; then
+        curl https://www.koelncampus.com/sender/livestream/ \
+	                | grep id='"'currentSong'[T]' \
+	                | sed -e 's/<[^>]*>//g' \
+	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
+    fi
+
 }
 
-campus "$1""$2"
+fetch_artist() {
+    if [[ "$1" == "-s" ]];then
+        curl -s https://www.koelncampus.com/sender/livestream/ \
+	                | grep id='"'currentSong'[A]' \
+	                | sed -e 's/<[^>]*>//g' \
+	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
+    elif [[ -z "$1" ]]; then
+        curl https://www.koelncampus.com/sender/livestream/ \
+	                | grep id='"'currentSong'[A]' \
+	                | sed -e 's/<[^>]*>//g' \
+	                | awk '{print $1,$2,$3,$4,$5,$6,$7,$8}'
+    fi
 
+
+}
+
+list() {
+    case "$1" in
+        artists)
+            cat ./kc.log \
+                | awk 'NR % 2 ==1'
+            ;;
+        songs)
+            cat ./kc.log \
+                | awk 'NR %2 ==0'
+            ;;
+        *)
+            cat ./kc.log
+    esac
+}
+
+options() {
+    case "$1" in
+        -s)
+            if [[ -z "$2" ]]; then
+                fetch_all "-s"
+            elif [[ "$2" == 'artist' ]]; then
+                fetch_artist "-s"
+            elif [[ "$2" == 'song' ]]; then
+                fetch_song "-s"
+            elif [[ "$2" == 'list' ]]; then
+                list "$3" 
+            fi
+            ;;
+        -h)
+            helper
+            ;;
+        --help)
+            helper
+            ;;
+        --nvlc)
+            play "--nvlc"
+            ;;
+        --mplayer)
+            play "--mplayer"
+            ;;
+        --license)
+            info "--license"
+            ;;
+        -l)
+            info "--license"
+            ;;
+        --version)
+            info "--version"
+            ;;
+        -v)
+            info "--version"
+            ;;
+    esac
+}
+
+delete() {
+    if [[ "$1" == 'last' ]]; then
+        local dt=$(date '+%Y-%m-%d-%H-%M-%S')
+        head -n -2 ./kc.log > /tmp/kc.log-$dt \
+            && cp /tmp/kc.log-$dt ./kc.log
+    elif [[ "$1" == 'all' ]]; then
+        printf "Warning! You are about to delete all fetched songs!\n" \
+            && rm -i ./kc.log
+    fi
+}
+
+dispatch() {
+    if [[ "$1" == -* ]]; then
+        options "$1" "$2" "$3"
+    elif [ -z "$1" ]; then
+        fetch_all \
+            && printf "done!\n"
+    elif [[ "$1" == 'list' ]]; then
+        list "$2"
+    elif [[ "$1" == 'artist' ]]; then
+        fetch_artist
+    elif [[ "$1" == 'song' ]]; then
+        fetch_song
+    elif [[ "$1" == 'delete' ]]; then
+        delete "$2"
+    elif [[ "$1" == 'play' ]]; then
+        play "$2"
+    elif [[ "$1" == 'info' ]]; then
+        helper && \
+            info '--license'
+    fi
+}
+
+main() {
+    dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+    cd "$dir"
+    dispatch "$@"
+}
+
+main "$@"
