@@ -193,7 +193,7 @@ options() {
 delete() {
     if [[ -z "$1" ]]; then
         printf "what do you want to delete?
-parameters are [last|all]\n."
+parameters are [last|all].\n"
     elif [[ "$1" == 'last' ]]; then
         local dt=$(date '+%Y-%m-%d-%H-%M-%S')
         head -n -2 ./kc.log > /tmp/kc.log-$dt \
