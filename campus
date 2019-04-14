@@ -64,18 +64,25 @@ audio_backend() {
     if [[ -z "$1" ]]; then
         get_mplayer_path && \
             player="$mplayer_path -playlist"
-    elif [[ "$1" == '--mplayer' ]]; then
+    elif [[ "$1" == *mplayer ]]; then
         get_mplayer_path && \
             player="$mplayer_path -playlist"
-    elif [[ "$1" == '--nvlc' ]]; then
+    elif [[ "$1" == *nvlc ]]; then
         get_nvlc_path && \
             player="$nvlc_path"
     fi
 }
 
 play () {
-    audio_backend "$1"
-    $player http://koelncampus.uni-koeln.de/hq.m3u
+    if [[ ! "$1" == '-s' ]]; then
+        audio_backend "$1"
+        $player http://koelncampus.uni-koeln.de/hq.m3u
+    else
+        audio_backend "$2"
+        printf "campusradio playing...\n"
+        $player http://koelncampus.uni-koeln.de/hq.m3u &>/dev/null
+    fi
+ 
 }
 
 fetch_all() {
@@ -160,7 +167,9 @@ options() {
             elif [[ "$2" == 'song' ]]; then
                 fetch_song "-s"
             elif [[ "$2" == 'list' ]]; then
-                list "$3" 
+                list "$3"
+            elif [[ "$2" == 'play' ]]; then
+                play "-s" "$3"
             fi
             ;;
         -h)
