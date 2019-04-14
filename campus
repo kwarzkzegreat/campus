@@ -17,7 +17,7 @@ COMMANDS:   list        display a list of fetched artist/song pairs
             song        fetch name of currently playing song
             delete      delete from list
             play        stream audio via backend specified 
-                        in [option] (default: mplayer)
+                        in [option] (default: nvlc)
             info        print help and WTFPL\n
 PARAMETERS: list
              artists    print all fetched artists
@@ -60,10 +60,28 @@ get_nvlc_path() {
         { nvlc_path="$n_path"; return; }
 }
 
+# gimme some time, pls
+#get_cmus_path() {
+#    shopt -s nullglob
+#    local cm_path=(/usr/bin/cmus)
+#    shopt -u nullglob
+#    [[ -x "$cm_path" ]] && \
+#        { cmus_path="$cm_path"; return; }
+#}
+
+#get_cmus_remote_path() {
+#    shopt -s nullglob
+#    local cmr_path=(/usr/bin/cmus-remote)
+#    shopt -u nullglob
+#    [[ -x "$cmr_path" ]] && \
+#        { cmus_remote_path="$cmr_path"; return; }
+#}
+
+
 audio_backend() {
     if [[ -z "$1" ]]; then
-        get_mplayer_path && \
-            player="$mplayer_path -playlist"
+        get_nvlc_path && \
+            player="$nvlc_path"
     elif [[ "$1" == *mplayer ]]; then
         get_mplayer_path && \
             player="$mplayer_path -playlist"
@@ -73,15 +91,25 @@ audio_backend() {
     fi
 }
 
-play () {
+split() {
+    # Usage: split "string" "delimiter"
+    # peace to dylanaraps!!
+    IFS=$'\n' read -d "" -ra arr <<< "${1//$2/$'\n'}"
+        printf '%s' "${arr[2]}"
+         }
+
+play() {
     if [[ ! "$1" == '-s' ]]; then
         audio_backend "$1"
         $player http://koelncampus.uni-koeln.de/hq.m3u
+
     else
         audio_backend "$2"
-        printf "campusradio playing...\n"
+        player_string=$(split "$player" "/" )
+        printf "campusradio playing (via $player_string)...\n"
         $player http://koelncampus.uni-koeln.de/hq.m3u &>/dev/null
     fi
+
  
 }
 
@@ -152,6 +180,9 @@ list() {
             cat ./kc.log \
                 | awk 'NR %2 ==0'
             ;;
+        last)
+            tail -n 2 ./kc.log
+            ;;
         *)
             cat ./kc.log
     esac
@@ -169,7 +200,9 @@ options() {
             elif [[ "$2" == 'list' ]]; then
                 list "$3"
             elif [[ "$2" == 'play' ]]; then
-                play "-s" "$3"
+                play '-s' "$3"
+            elif [[ "$3" == 'play' ]]; then
+                play '-s' "$2"
             fi
             ;;
         -h)
@@ -203,6 +236,24 @@ delete() {
     if [[ -z "$1" ]]; then
         printf "what do you want to delete?
 parameters are [last|all].\n"
+        while true
+        do
+            read -p "Delete what?   " answer
+            case $answer in
+                last)
+                    local dt=$(date '+%Y-%m-%d-%H-%M-%S')
+                    head -n -2 ./kc.log > /tmp/kc.log-$dt \
+                        && cp /tmp/kc.log-$dt ./kc.log
+                    break;;
+                all)
+                    printf "Warning! You are about to delete all fetched songs!\n" \
+                        && rm -i ./kc.log
+                    break;;
+                *)
+                    printf "Sorry, did not understand, aborting.\n"
+                    exit;;
+            esac
+        done
     elif [[ "$1" == 'last' ]]; then
         local dt=$(date '+%Y-%m-%d-%H-%M-%S')
         head -n -2 ./kc.log > /tmp/kc.log-$dt \
