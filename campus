@@ -104,13 +104,13 @@ split() {
 play() {
     if [[ ! "$1" == '-s' ]]; then
         audio_backend "$1"
-        $player http://koelncampus.uni-koeln.de/hq.m3u
+        $player http://koelncampus.uni-koeln.de:80/hq
 
     else
         audio_backend "$2"
         player_string=$(split "$player" "/" )
         printf "campusradio playing (via $player_string)...\n"
-        $player http://koelncampus.uni-koeln.de/hq.m3u &>/dev/null
+        $player http://koelncampus.uni-koeln.de:80/hq &>/dev/null
     fi
 
  
